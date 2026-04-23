@@ -1545,6 +1545,19 @@ function collect_platform()
 		if (! found) {
 			if ("generic" in keys(platform.profiles))
 				device.profile = "generic";
+			else if (match(device.board_name, /^gw,imx6(dl|q)-gw5(1xx|2xx|3xx|4xx|51x|52x|53x|904|907|910|912|913|400-a)$/)){
+				// Special handling for multi-dts imx/cortexa9 ventana profiles,
+				// the "normal" and "large" image profiles depend on nand geometry
+				let page_size = trim(fs.readfile("/sys/class/ubi/ubi0/min_io_size")) || "unknown";
+				if (page_size == "2048")
+					device.profile = "gateworks_ventana";
+				else if (page_size == "4096")
+					device.profile = "gateworks_ventana-large";
+				else
+					L.die("imx/cortexa9 Ventana: %s unsupported nand geometry '%s', we cannot select the profile safely\n", device.board_name, page_size);
+				// Special "type" (suffix) for sysupgrade images too
+				device.sutype = "nand";
+			}
 			else
 				L.die("Unsupported profile: %s\n  Valid profiles are %s\n", device.profile, keys(platform.profiles));
 		}
