@@ -1420,6 +1420,19 @@ function complete_build_info(profile, board)
 	// Here is where we fix our guess for 'sutype' made above in
 	// 'collect_device_info' (look for "sdcard" there).
 	let valid_sutypes = uniq(sort(map(images, (img) => img.type)));
+	// Handle MikroTik v7 RouterBOOT sysupgrade images
+	if ("sysupgrade-v7" in valid_sutypes) {
+		let active_booter = trim(fs.readfile("/sys/firmware/mikrotik/soft_config/booter")) || "unknown";
+		let bootfwver;
+		if (match(active_booter, /\[regular\]/))
+			bootfwver = trim(fs.readfile("/sys/firmware/mikrotik/soft_config/bios_version")) || "0";
+		else if (match(active_booter, /\[backup\]/))
+			bootfwver = trim(fs.readfile("/sys/firmware/mikrotik/hard_config/booter_version")) || "0";
+		
+		if (split(bootfwver, ".")[0] >= 7)
+			device.sutype = "sysupgrade-v7";
+	}
+
 	if (! (device.sutype in valid_sutypes)) {
 		if (device.sutype == "sysupgrade" && length(valid_sutypes) == 1)
 			device.sutype = valid_sutypes[0];
